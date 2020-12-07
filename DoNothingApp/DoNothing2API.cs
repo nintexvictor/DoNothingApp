@@ -7,6 +7,7 @@ using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NewRelic.Azure.BindingExtension;
+using Microsoft.Extensions.Primitives;
 
 namespace FunctionApp1
 {
@@ -17,13 +18,19 @@ namespace FunctionApp1
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             ILogger log,
             ExecutionContext context,
-            [NewRelic.Azure.BindingExtension.NewRelicTelemetry(NewRelicAppName = "DoNothing")] ICollector<NewRelic.Azure.BindingExtension.NewRelicCollector> collector)
+            [NewRelic.Azure.BindingExtension.NewRelicTelemetry(NewRelicAppName = "DoNothing2")] ICollector<NewRelic.Azure.BindingExtension.NewRelicCollector> collector)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
+            string correlationId = string.IsNullOrWhiteSpace(req.Query["id"]) ? Guid.NewGuid().ToString() : req.Query["id"].ToString();
+
             var newRelicCollector = new NewRelic.Azure.BindingExtension.NewRelicCollector(context);
             newRelicCollector.GenerateMetrics();
-            newRelicCollector.GenerateTraces(req);
+            newRelicCollector.GenerateTraces(req, System.Diagnostics.ActivityKind.Producer, correlationId);
+            newRelicCollector.TraceCollector.AddTraceTag("tenantId", "microplumbers");
+            newRelicCollector.TraceCollector.AddTraceTag("workflowId", "abcdefg");
+            newRelicCollector.TraceCollector.AddTraceTag("Do", "Nothing");
+            newRelicCollector.TraceCollector.AddTraceTag("correlationId", correlationId);
 
             collector.Add(newRelicCollector);
 
@@ -34,14 +41,9 @@ namespace FunctionApp1
                 name = req.ReadAsStringAsync().Result;
             }
 
-            string correlationId = string.IsNullOrWhiteSpace(req.Query["id"]) ? Guid.NewGuid().ToString() : req.Query["id"].ToString();
-
             string responseMessage = string.IsNullOrEmpty(name)
                 ? $"This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response. (CorrelationId: {correlationId})"
                 : $"Hello, {name}. This HTTP triggered function executed successfully. (CorrelationId: {correlationId})";
-
-            newRelicCollector.TraceCollector.AddTraceTag("Do", "Nothing");
-            newRelicCollector.TraceCollector.AddTraceTag("correlationId", correlationId);
 
             return new OkObjectResult(responseMessage);
         }

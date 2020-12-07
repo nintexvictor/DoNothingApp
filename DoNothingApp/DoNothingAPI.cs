@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NewRelic.Azure.BindingExtension;
 using System.Net.Http;
+using Microsoft.Extensions.Primitives;
 
 namespace FunctionApp1
 {
@@ -18,13 +19,19 @@ namespace FunctionApp1
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
             ILogger log,
             ExecutionContext context,
-            [NewRelic.Azure.BindingExtension.NewRelicTelemetry(NewRelicAppName = "DoNothing")] ICollector<NewRelic.Azure.BindingExtension.NewRelicCollector> collector)
+            [NewRelic.Azure.BindingExtension.NewRelicTelemetry(NewRelicAppName = "DoNothing1")] ICollector<NewRelic.Azure.BindingExtension.NewRelicCollector> collector)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
+            string correlationId = string.IsNullOrWhiteSpace(req.Query["id"]) ? Guid.NewGuid().ToString() : req.Query["id"].ToString();
+
             var newRelicCollector = new NewRelic.Azure.BindingExtension.NewRelicCollector(context);
             newRelicCollector.GenerateMetrics();
-            newRelicCollector.GenerateTraces(req);
+            newRelicCollector.GenerateTraces(req, System.Diagnostics.ActivityKind.Consumer, correlationId);
+            newRelicCollector.TraceCollector.AddTraceTag("tenantId", "microplumbers");
+            newRelicCollector.TraceCollector.AddTraceTag("workflowId", "abcdefg");
+            newRelicCollector.TraceCollector.AddTraceTag("Do", "Nothing");
+            newRelicCollector.TraceCollector.AddTraceTag("correlationId", correlationId);
 
             collector.Add(newRelicCollector);
 
@@ -35,15 +42,11 @@ namespace FunctionApp1
                 name = await req.ReadAsStringAsync();
             }
 
-            string correlationId = string.IsNullOrWhiteSpace(req.Query["id"]) ? Guid.NewGuid().ToString() : req.Query["id"].ToString();
 
             HttpClient client = new HttpClient();
             HttpResponseMessage response = await client.GetAsync($"http://{Environment.GetEnvironmentVariable("WEBSITE_HOSTNAME")}/api/DoNothing2API?name={name}&id={correlationId}");
 
             string responseMessage = await response.Content.ReadAsStringAsync();
-
-            newRelicCollector.TraceCollector.AddTraceTag("Do", "Nothing2");
-            newRelicCollector.TraceCollector.AddTraceTag("correlationId", correlationId);
 
             return new OkObjectResult(responseMessage);
         }
