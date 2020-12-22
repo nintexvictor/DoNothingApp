@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Diagnostics;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -13,29 +15,20 @@ namespace FunctionApp1
     {
         public override void Configure(IFunctionsHostBuilder builder)
         {
-            builder.Services.AddOpenTelemetryTracing((serviceProvider, tracerBuilder) =>
-            {
-                // Make the logger factory available to the dependency injection
-                // container so that it may be injected into the OpenTelemetry Tracer.
-                var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+            var activitySource = new ActivitySource("DoNothingApp");
 
-                // Adds the New Relic Exporter loading settings from the appsettings.json
-                tracerBuilder
-                    .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(configuration["NewRelicAppName"]))
-                    .AddConsoleExporter()
-                    .AddNewRelicExporter(options =>
-                    {
-                        options.ApiKey = configuration["NewRelicInsertApiKey"];
-                    })
-                    .SetSampler(new AlwaysOnSampler())
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
+            builder.Services.AddSingleton(activitySource);
 
-                ILogger logger = loggerFactory.CreateLogger<Startup>();
+            var openTelemetry = Sdk.CreateTracerProviderBuilder()
+                .AddSource("DoNothingApp")
+                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("DoNothingApp"))
+                .AddConsoleExporter()
+                .SetSampler(new AlwaysOnSampler())
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .Build();
 
-                logger.LogInformation("Starting up, wiring up OpenTelemtry...");
-            });
+            builder.Services.AddSingleton(openTelemetry);
         }
     }
 }
