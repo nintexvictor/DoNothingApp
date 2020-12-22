@@ -2,11 +2,21 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AzureFunctionsVersion>v3</AzureFunctionsVersion>
+    <UserSecretsId>95c14718-3b19-42d2-96e9-f929459e3325</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="4.0.1" />
+    <PackageReference Include="Microsoft.Azure.Functions.Extensions" Version="1.1.0" />
+    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions" Version="3.0.6" />
+    <PackageReference Include="Microsoft.Azure.WebJobs.Extensions.Storage" Version="3.0.10" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.9" />
-    <PackageReference Include="NewRelic.Azure.BindingExtension" Version="0.0.8-alpha.2" />
+    <PackageReference Include="NewRelic.OpenTelemetry" Version="1.0.0-rc1.9" />
+    <PackageReference Include="NewRelic.Telemetry" Version="1.0.0-beta.223" />
+    <PackageReference Include="OpenTelemetry" Version="1.0.0-rc1.1" />
+    <PackageReference Include="OpenTelemetry.Api" Version="1.0.0-rc1.1" />
+    <PackageReference Include="OpenTelemetry.Exporter.Console" Version="1.0.0-rc1.1" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.0.0-rc1.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.0.0-rc1.1" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.0.0-rc1.1" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
